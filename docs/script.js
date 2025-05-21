@@ -2,29 +2,42 @@
 const { set, get, del, clear, keys } = idbKeyval;
 const PREFIX = "fb-akun-";
 
-// Simpan cookies saat ini dengan nama
+// Simpan cookies dari inputan nama + textarea cookies
 async function simpanCookies() {
-  const cookies = document.cookie;
-  const nama = prompt("Nama akun ini:");
-  if (!nama) return alert("Nama wajib diisi!");
+  const accountName = document.getElementById('accountName').value.trim();
+  const raw = document.getElementById('cookieInput').value.trim();
 
-  await set(PREFIX + nama, cookies);
-  alert("Cookies disimpan.");
+  if (!accountName || !raw) {
+    alert("Isi semua kolom terlebih dahulu.");
+    return;
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    alert("Cookies harus dalam format JSON yang valid.");
+    return;
+  }
+
+  // Simpan ke idb-keyval dengan nama yang unik
+  await set(PREFIX + accountName, JSON.stringify(parsed));
+  alert("Cookies berhasil disimpan!");
   tampilkanDropdown();
 }
 
-// Tampilkan daftar akun di dropdown
+// Tampilkan semua akun di dropdown
 async function tampilkanDropdown() {
   const dropdown = document.getElementById("akunDropdown");
   dropdown.innerHTML = "";
   const semuaKey = await keys();
 
   if (semuaKey.length === 0) {
-    dropdown.innerHTML = `<option>Tidak ada akun tersimpan</option>`;
+    dropdown.innerHTML = `<option disabled selected>Tidak ada akun tersimpan</option>`;
     return;
   }
 
-  semuaKey.forEach(async (key) => {
+  semuaKey.forEach((key) => {
     const option = document.createElement("option");
     option.value = key;
     option.innerText = key.replace(PREFIX, "");
@@ -32,30 +45,32 @@ async function tampilkanDropdown() {
   });
 }
 
-// Pakai cookies dari akun terpilih (manual inject)
+// Pakai cookies terpilih → Inject cookies ke document.cookie
 async function pakaiCookies() {
   const key = document.getElementById("akunDropdown").value;
   const data = await get(key);
   if (!data) return alert("Cookies tidak ditemukan!");
 
-  // Inject cookies manual ke document.cookie
-  // Perlu inject ulang per tab karena tidak persist cross-domain
-  const pairs = data.split("; ");
-  pairs.forEach(pair => {
-    const [name, value] = pair.split("=");
-    document.cookie = `${name}=${value}; path=/; domain=.facebook.com`;
-  });
+  try {
+    const cookies = JSON.parse(data);
+    cookies.forEach(cookie => {
+      document.cookie = `${cookie.name}=${cookie.value}; domain=${cookie.domain}; path=${cookie.path || "/"};`;
+    });
 
-  alert("Cookies di-inject ke halaman ini.\nSilakan reload tab Facebook.");
+    alert("Cookies berhasil di-inject!\nSilakan reload tab Facebook.");
+  } catch (e) {
+    alert("Format cookies tidak valid!");
+  }
 }
 
 // Hapus semua akun
 async function hapusSemua() {
-  if (confirm("Yakin ingin hapus semua akun?")) {
+  if (confirm("Yakin ingin menghapus semua akun?")) {
     await clear();
     tampilkanDropdown();
+    alert("Semua akun berhasil dihapus.");
   }
 }
 
-// Init tampilkan saat load
+// Jalankan saat halaman dimuat
 tampilkanDropdown();
