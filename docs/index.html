@@ -2,45 +2,111 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Facebook Multi-Akun Bot</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    button, select, input, textarea {
-      margin-top: 10px;
-      padding: 8px;
-      font-size: 16px;
-      width: 100%;
-      max-width: 400px;
-      box-sizing: border-box;
-    }
-    textarea {
-      resize: vertical;
-    }
-  </style>
+  <title>Multi Akun Facebook - Simpan Cookies</title>
+  <script src="https://cdn.jsdelivr.net/npm/idb-keyval@6/dist/idb-keyval.iife.min.js"></script>
 </head>
 <body>
-  <h2>Facebook Bot Multi-Akun (Frontend Only)</h2>
+  <h2>Facebook Multi-Akun</h2>
 
-  <!-- Tambahan input untuk nama akun dan cookies -->
   <label for="accountName">Nama Akun:</label><br>
   <input type="text" id="accountName" placeholder="Contoh: FB Utama"><br><br>
 
-  <label for="cookieInput">Tempel Cookies dari Extension:</label><br>
-  <textarea id="cookieInput" rows="6" placeholder="Paste cookies (format JSON) di sini..."></textarea><br><br>
+  <label for="cookieInput">Tempel Cookies (dari ekstensi):</label><br>
+  <textarea id="cookieInput" rows="6" cols="50" placeholder="Paste cookies di sini..."></textarea><br><br>
 
-  <!-- Tombol aksi -->
-  <button onclick="simpanCookies()">➕ Simpan Cookies Akun Ini</button>
-  <button onclick="hapusSemua()">🗑️ Hapus Semua Akun</button>
+  <button onclick="simpanCookies()">💾 Simpan Cookies</button>
+  <button onclick="pakaiCookies()">🍪 Pakai Cookies</button>
+  <button onclick="hapusSemua()">🗑 Hapus Semua Akun</button>
 
-  <br><br>
-  <label for="akunDropdown">Pilih Akun:</label><br>
+  <h3>Pilih Akun Tersimpan:</h3>
   <select id="akunDropdown"></select>
 
-  <br><br>
-  <button onclick="pakaiCookies()">✅ Pakai Cookies Terpilih</button>
+  <script>
+    const { set, get, del, clear, keys } = idbKeyval;
+    const PREFIX = "fb-akun-";
 
-  <!-- Script -->
-  <script src="https://cdn.jsdelivr.net/npm/idb-keyval@6/dist/idb-keyval.iife.min.js"></script>
-  <script src="script.js"></script>
+    function convertStringToCookies(cookieStr) {
+      return cookieStr.split(";").map(pair => {
+        const [name, ...rest] = pair.trim().split("=");
+        return {
+          name,
+          value: rest.join("="),
+          domain: ".facebook.com",
+          path: "/"
+        };
+      });
+    }
+
+    async function simpanCookies() {
+      const accountName = document.getElementById('accountName').value.trim();
+      const raw = document.getElementById('cookieInput').value.trim();
+
+      if (!accountName || !raw) {
+        alert("Isi semua kolom terlebih dahulu.");
+        return;
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (e) {
+        try {
+          parsed = convertStringToCookies(raw);
+        } catch (e2) {
+          return alert("Format cookies tidak dikenali.");
+        }
+      }
+
+      await set(PREFIX + accountName, JSON.stringify(parsed));
+      alert("Cookies berhasil disimpan!");
+      tampilkanDropdown();
+    }
+
+    async function tampilkanDropdown() {
+      const dropdown = document.getElementById("akunDropdown");
+      dropdown.innerHTML = "";
+      const semuaKey = await keys();
+
+      if (semuaKey.length === 0) {
+        dropdown.innerHTML = `<option disabled selected>Tidak ada akun tersimpan</option>`;
+        return;
+      }
+
+      semuaKey.forEach((key) => {
+        const option = document.createElement("option");
+        option.value = key;
+        option.innerText = key.replace(PREFIX, "");
+        dropdown.appendChild(option);
+      });
+    }
+
+    async function pakaiCookies() {
+      const key = document.getElementById("akunDropdown").value;
+      const data = await get(key);
+      if (!data) return alert("Cookies tidak ditemukan!");
+
+      try {
+        const cookies = JSON.parse(data);
+        cookies.forEach(cookie => {
+          document.cookie = `${cookie.name}=${cookie.value}; domain=${cookie.domain}; path=${cookie.path || "/"};`;
+        });
+
+        alert("Cookies berhasil di-inject!\nSilakan reload tab Facebook.");
+      } catch (e) {
+        alert("Format cookies tidak valid!");
+      }
+    }
+
+    async function hapusSemua() {
+      if (confirm("Yakin ingin menghapus semua akun?")) {
+        await clear();
+        tampilkanDropdown();
+        alert("Semua akun berhasil dihapus.");
+      }
+    }
+
+    // Tampilkan dropdown saat halaman dimuat
+    tampilkanDropdown();
+  </script>
 </body>
 </html>
