@@ -5,22 +5,41 @@
   <title>Facebook Multi-Akun Bot</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
-    button, select { margin-top: 10px; padding: 8px; font-size: 16px; }
+    button, select, input, textarea {
+      margin-top: 10px;
+      padding: 8px;
+      font-size: 16px;
+      width: 100%;
+      max-width: 400px;
+      box-sizing: border-box;
+    }
+    textarea {
+      resize: vertical;
+    }
   </style>
 </head>
 <body>
   <h2>Facebook Bot Multi-Akun (Frontend Only)</h2>
 
+  <!-- Tambahan input untuk nama akun dan cookies -->
+  <label for="accountName">Nama Akun:</label><br>
+  <input type="text" id="accountName" placeholder="Contoh: FB Utama"><br><br>
+
+  <label for="cookieInput">Tempel Cookies dari Extension:</label><br>
+  <textarea id="cookieInput" rows="6" placeholder="Paste cookies (format JSON) di sini..."></textarea><br><br>
+
+  <!-- Tombol aksi -->
   <button onclick="simpanCookies()">➕ Simpan Cookies Akun Ini</button>
   <button onclick="hapusSemua()">🗑️ Hapus Semua Akun</button>
 
   <br><br>
-  <label>Pilih Akun:</label><br>
+  <label for="akunDropdown">Pilih Akun:</label><br>
   <select id="akunDropdown"></select>
 
   <br><br>
   <button onclick="pakaiCookies()">✅ Pakai Cookies Terpilih</button>
 
+  <!-- Script -->
   <script src="https://cdn.jsdelivr.net/npm/idb-keyval@6/dist/idb-keyval.iife.min.js"></script>
   <script src="script.js"></script>
 </body>
