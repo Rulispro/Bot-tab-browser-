@@ -1,6 +1,19 @@
-// Gunakan IndexedDB via idb-keyval
+ // Gunakan IndexedDB via idb-keyval
 const { set, get, del, clear, keys } = idbKeyval;
 const PREFIX = "fb-akun-";
+
+// Fungsi untuk konversi string biasa menjadi array cookie JSON
+function convertStringToCookies(cookieStr) {
+  return cookieStr.split(";").map(pair => {
+    const [name, ...rest] = pair.trim().split("=");
+    return {
+      name,
+      value: rest.join("="),
+      domain: ".facebook.com",
+      path: "/"
+    };
+  });
+}
 
 // Simpan cookies dari inputan nama + textarea cookies
 async function simpanCookies() {
@@ -14,13 +27,18 @@ async function simpanCookies() {
 
   let parsed;
   try {
+    // Coba parse sebagai JSON
     parsed = JSON.parse(raw);
   } catch (e) {
-    alert("Cookies harus dalam format JSON yang valid.");
-    return;
+    // Kalau gagal, coba parsing manual dari format string biasa
+    try {
+      parsed = convertStringToCookies(raw);
+    } catch (e2) {
+      return alert("Format cookies tidak dikenali.");
+    }
   }
 
-  // Simpan ke idb-keyval dengan nama yang unik
+  // Simpan ke IndexedDB via idb-keyval
   await set(PREFIX + accountName, JSON.stringify(parsed));
   alert("Cookies berhasil disimpan!");
   tampilkanDropdown();
